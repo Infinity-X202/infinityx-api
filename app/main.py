@@ -73,9 +73,24 @@ def public_job(row: dict | None) -> dict | None:
     return data
 
 
-def create_app(data_dir: Path | None = None) -> FastAPI:
+def _writable_data_dir() -> Path:
     env_dir = os.environ.get("DATA_DIR")
-    root = data_dir or (Path(env_dir) if env_dir else ROOT / "data")
+    candidates = [Path(env_dir)] if env_dir else [ROOT / "data", Path("/tmp/infinityx-data")]
+    last_error: OSError | None = None
+    for candidate in candidates:
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            probe = candidate / ".write"
+            probe.write_text("ok", encoding="utf-8")
+            probe.unlink()
+            return candidate
+        except OSError as exc:
+            last_error = exc
+    raise OSError(f"No writable data directory: {last_error}")
+
+
+def create_app(data_dir: Path | None = None) -> FastAPI:
+    root = data_dir or _writable_data_dir()
     root.mkdir(parents=True, exist_ok=True)
     store = Store(root / "infinityx.db")
     manager = Manager(store, root)

@@ -12,7 +12,7 @@ from urllib.parse import quote_plus, unquote, urljoin, urlparse
 import httpx
 
 from .errors import AppError, TransferStopped
-from .media import convert_media, probe_media
+from .media import convert_media, ffmpeg_available, probe_media
 from .platforms import detect_platform
 from .security import (
     MEDIA_EXTENSIONS,
@@ -335,8 +335,12 @@ def selector_for(format_id: str, video_only: bool, media_type: str) -> str:
     if not FORMAT_ID.fullmatch(format_id):
         raise AppError("Choose one of the listed formats.")
     if format_id == "best":
-        return "bestaudio/best" if media_type == "audio" else "bestvideo+bestaudio/best"
-    if media_type == "audio" or not video_only:
+        if media_type == "audio":
+            return "bestaudio/best"
+        if ffmpeg_available():
+            return "bestvideo+bestaudio/best"
+        return "best[acodec!=none][vcodec!=none]/best"
+    if media_type == "audio" or not video_only or not ffmpeg_available():
         return format_id
     return f"{format_id}+bestaudio/{format_id}"
 
