@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: infinityx-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATA_DIR
+        value: /app/data
