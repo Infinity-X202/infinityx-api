@@ -39,10 +39,7 @@ _cache_lock = threading.Lock()
 def open_ydl(options: dict):
     from yt_dlp import YoutubeDL
 
-    try:
-        return YoutubeDL({**options, "impersonate": "chrome"})
-    except Exception:
-        return YoutubeDL(options)
+    return YoutubeDL(options)
 
 
 def range_header(start: int) -> dict[str, str]:
@@ -270,7 +267,7 @@ def extract_public(url: str, max_bytes: int) -> dict:
     try:
         with open_ydl(options) as ydl:
             info = ydl.extract_info(url, download=False)
-    except DownloadError as exc:
+    except Exception as exc:
         raise AppError(friendly_download_error(exc)) from exc
     if not info:
         raise AppError("No authorized public download is available for this link.")
