@@ -39,7 +39,13 @@ _cache_lock = threading.Lock()
 def open_ydl(options: dict):
     from yt_dlp import YoutubeDL
 
-    return YoutubeDL(options)
+    try:
+        from yt_dlp.networking.impersonate import ImpersonateTarget
+
+        client = YoutubeDL({**options, "impersonate": ImpersonateTarget.from_str("chrome")})
+    except Exception:
+        return YoutubeDL(options)
+    return client
 
 
 def range_header(start: int) -> dict[str, str]:

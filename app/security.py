@@ -62,6 +62,7 @@ def _parse_ip(host: str):
         return None
 
 
+_PORNHUB_HOST = re.compile(r"^(?:[a-z]{2}\.)?pornhub\.com$", re.IGNORECASE)
 _SAVEPORN = frozenset({"saveporn.net", "www.saveporn.net"})
 _SAVEPORN_HOME = re.compile(r"^/(?:[a-z]{2})?/?$", re.IGNORECASE)
 _PORNHUB_VIDEO = re.compile(r"view_video|embed", re.IGNORECASE)
@@ -77,6 +78,8 @@ def normalize_user_url(url: str) -> str:
     raw = (url or "").strip()
     parsed = urlparse(raw)
     bare = _bare_host(parsed.hostname or "")
+    if _PORNHUB_HOST.fullmatch(bare):
+        return urlunparse(("https", "www.pornhub.com", parsed.path or "/", "", parsed.query, ""))
     if bare not in _SAVEPORN:
         return raw
     path = parsed.path or "/"
@@ -240,5 +243,7 @@ def friendly_download_error(exc: Exception) -> str:
     if "timed out" in lowered or "timeout" in lowered or "stall" in lowered:
         return "The download stopped because the connection was too slow or timed out."
     if any(word in lowered for word in ("unsupported url", "no video formats", "unable to extract", "no formats")):
-        return "No authorized public download is available for this link."
-    return "No authorized public download is available for this link."
+        return "Questo video non ha un file pubblico scaricabile."
+    if "410" in lowered or "gone" in lowered:
+        return "Pornhub ha rifiutato questa pagina. Riprova tra qualche secondo."
+    return "Questo video non si può scaricare da qui."
