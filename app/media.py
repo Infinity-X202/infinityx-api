@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -23,8 +24,39 @@ TARGET_SUFFIX = {
 }
 
 
+_ffmpeg_path: Path | None = None
+
+
+def ensure_ffmpeg() -> Path | None:
+    global _ffmpeg_path
+    if _ffmpeg_path and _ffmpeg_path.is_file():
+        return _ffmpeg_path
+    found = shutil.which("ffmpeg")
+    if found:
+        _ffmpeg_path = Path(found)
+        return _ffmpeg_path
+    try:
+        import imageio_ffmpeg
+
+        bundled = Path(imageio_ffmpeg.get_ffmpeg_exe())
+    except Exception:
+        return None
+    if not bundled.is_file():
+        return None
+    dest_dir = Path(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp") / "infinityx-bin"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / ("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
+    if not dest.is_file():
+        shutil.copy2(bundled, dest)
+        if os.name != "nt":
+            dest.chmod(0o755)
+    os.environ["PATH"] = str(dest_dir) + os.pathsep + os.environ.get("PATH", "")
+    _ffmpeg_path = dest
+    return dest
+
+
 def ffmpeg_available() -> bool:
-    return shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
+    return ensure_ffmpeg() is not None
 
 
 def convert_media(src: Path, dest: Path, target: str, root: Path) -> Path:

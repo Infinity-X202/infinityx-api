@@ -12,7 +12,7 @@ from urllib.parse import quote_plus, unquote, urljoin, urlparse
 import httpx
 
 from .errors import AppError, TransferStopped
-from .media import convert_media, ffmpeg_available, probe_media
+from .media import convert_media, ensure_ffmpeg, ffmpeg_available, probe_media
 from .platforms import detect_platform
 from .security import (
     MEDIA_EXTENSIONS,
@@ -766,8 +766,10 @@ class Manager:
             elif status.get("status") == "finished" and status.get("filename"):
                 finished.append(status["filename"])
 
+        ffmpeg_bin = ensure_ffmpeg()
         options = {
             "format": selector,
+            **({"ffmpeg_location": str(ffmpeg_bin.parent)} if ffmpeg_bin else {}),
             "outtmpl": str(folder / "%(id)s.%(ext)s"),
             "paths": {"home": str(folder)},
             "noplaylist": True,
