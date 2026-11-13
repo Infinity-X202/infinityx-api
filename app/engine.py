@@ -36,6 +36,18 @@ _analysis_cache: dict[str, tuple[float, dict]] = {}
 _cache_lock = threading.Lock()
 
 
+def open_ydl(options: dict):
+    from yt_dlp import YoutubeDL
+
+    browser = {**options, "impersonate": "chrome"}
+    try:
+        return YoutubeDL(browser)
+    except Exception as exc:
+        if "impersonate" not in str(exc).lower():
+            raise
+        return YoutubeDL(options)
+
+
 def range_header(start: int) -> dict[str, str]:
     if start < 0:
         raise AppError("Invalid resume position.")
@@ -259,7 +271,7 @@ def extract_public(url: str, max_bytes: int) -> dict:
         "max_filesize": max_bytes,
     }
     try:
-        with YoutubeDL(options) as ydl:
+        with open_ydl(options) as ydl:
             info = ydl.extract_info(url, download=False)
     except DownloadError as exc:
         raise AppError(friendly_download_error(exc)) from exc
@@ -371,7 +383,7 @@ def search_public(query: str, source: str = "pornhub") -> dict:
         "no_color": True,
     }
     try:
-        with YoutubeDL(options) as ydl:
+        with open_ydl(options) as ydl:
             info = ydl.extract_info(target, download=False)
     except DownloadError as exc:
         raise AppError(friendly_download_error(exc)) from exc
@@ -791,7 +803,7 @@ class Manager:
             "writeautomaticsub": False,
         }
         try:
-            with YoutubeDL(options) as ydl:
+            with open_ydl(options) as ydl:
                 ydl.download([row["url"]])
         except DownloadCancelled as exc:
             kind = "pause" if control.pause.is_set() or "PAUSE" in str(exc) else "cancel"
