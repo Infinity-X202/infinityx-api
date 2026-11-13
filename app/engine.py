@@ -39,12 +39,9 @@ _cache_lock = threading.Lock()
 def open_ydl(options: dict):
     from yt_dlp import YoutubeDL
 
-    browser = {**options, "impersonate": "chrome"}
     try:
-        return YoutubeDL(browser)
-    except Exception as exc:
-        if "impersonate" not in str(exc).lower():
-            raise
+        return YoutubeDL({**options, "impersonate": "chrome"})
+    except Exception:
         return YoutubeDL(options)
 
 
